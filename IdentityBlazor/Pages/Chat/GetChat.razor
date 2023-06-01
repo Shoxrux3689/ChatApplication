@@ -1,0 +1,63 @@
+﻿@page "/getchat/{chatId}"
+@using Blazored.LocalStorage;
+@using IdentityBlazor.Models;
+@inject ILocalStorageService _storage
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+@{
+	foreach(var message in messages)
+	{
+		<p>@message.FromUserId</p>
+		<p>@message.Text</p>
+		<p>@message.Date.ToString()</p>
+	}
+}
+<form>
+	<input class="form-control" type="text" @bind-value="messageText" placeholder="message" />
+	<button type="button" class="btn btn-primary form-control" @onclick="(async() => await SendMessage())">Send</button>
+</form>
+
+
+@code{
+	private string messageText { get; set; }
+
+	[Parameter]
+	public string? chatId { get; set; }
+
+	private List<MessageModel>? messages = new List<MessageModel>();
+
+	protected override async Task OnInitializedAsync()
+	{
+		messages = await Get($"api/Chat/chat?chatid={chatId}");
+	}
+
+	public async Task<List<MessageModel>>? Get(string url)
+	{
+		var token = await _storage.GetItemAsStringAsync("token");
+
+		var request = new HttpRequestMessage(HttpMethod.Get, url);
+		request.Headers.Add("Authorization", $"Bearer {token}");
+
+		var response = await Http.SendAsync(request);
+
+		return await response.Content.ReadFromJsonAsync<List<MessageModel>>();
+	}
+
+	private async Task SendMessage()
+	{
+		var token = await _storage.GetItemAsStringAsync("token");
+
+		var request = new HttpRequestMessage(HttpMethod.Post, "api/chat/sendmessage");
+		request.Headers.Add("Authorization", $"Bearer {token}");
+		request.Content = JsonContent.Create(new NewMessageModel()
+			{
+				Text = messageText,
+				ChatId = Guid.Parse(chatId)
+			});
+		await Http.SendAsync(request);
+
+		Navigation.NavigateTo($"/getchat/{chatId}");
+	}
+}
+

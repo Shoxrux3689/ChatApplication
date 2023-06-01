@@ -1,0 +1,41 @@
+﻿@page "/getchats"
+@using Blazored.LocalStorage;
+@using IdentityBlazor.Models;
+@inject ILocalStorageService _storage
+@inject HttpClient Http
+
+
+<div>
+	@foreach (var chat in _chats)
+	{
+		<a href="/getchat/@chat.Id">@chat.Id</a>
+		<br />
+	}
+</div>
+
+@code {
+
+	private List<ChatModel>? _chats = new List<ChatModel>();
+
+	protected override async Task OnInitializedAsync()
+	{
+		_chats = await Get("api/Chat/chats");
+	}
+
+	public async Task<List<ChatModel>>? Get(string url)
+	{
+		var token = await _storage.GetItemAsStringAsync("token");
+
+		var request = new HttpRequestMessage(HttpMethod.Get, url);
+		request.Headers.Add("Authorization", $"Bearer {token}");
+
+		var response = await Http.SendAsync(request);
+
+		return await response.Content.ReadFromJsonAsync<List<ChatModel>>();
+	}
+
+	public class ChatModel
+	{
+		public Guid Id { get; set; }
+	}
+}
