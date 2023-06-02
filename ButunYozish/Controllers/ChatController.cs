@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using ChatData.Entities;
 using System.Security.Claims;
 using Mapster;
+using ButunYozish.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ButunYozish.Controllers;
 
@@ -19,11 +21,12 @@ public class ChatController : ControllerBase
 {
     private readonly ChatDbContext chatDb;
     private readonly IdentityDbContext identityDb;
-
-    public ChatController(ChatDbContext chatDbContext, IdentityDbContext identityDbContext)
+    private readonly IHubContext<ChatHub> chatHubContext;
+    public ChatController(ChatDbContext chatDbContext, IdentityDbContext identityDbContext, IHubContext<ChatHub> chat)
     {
         chatDb = chatDbContext;
         identityDb = identityDbContext;
+        chatHubContext = chat;
     }
 
     [HttpPost("sendmessage")]
@@ -75,6 +78,20 @@ public class ChatController : ControllerBase
         chat.Messages.Add(message);
         chatDb.Messages.Add(message);
         await chatDb.SaveChangesAsync();
+
+        var messageModel = message.Adapt<MessageModel>();
+
+        var connectionId = UserConnectionIdService.ConnectionIds.FirstOrDefault(c => c.Item1 == userId)?.Item2;
+        if (connectionId != null)
+        {
+            await chatHubContext.Clients.Client(connectionId).SendAsync("NewMessage", messageModel);
+        } 
+
+        var connectionId2 = UserConnectionIdService.ConnectionIds.FirstOrDefault(c => c.Item1 == userId)?.Item2;
+        if (connectionId2 != null)
+        {
+            await chatHubContext.Clients.Client(connectionId).SendAsync("NewMessage", messageModel);
+        } 
 
         return Ok();
     }

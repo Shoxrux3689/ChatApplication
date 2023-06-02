@@ -1,6 +1,7 @@
 ﻿@page "/getchat/{chatId}"
 @using Blazored.LocalStorage;
 @using IdentityBlazor.Models;
+@using Microsoft.AspNetCore.SignalR.Client;
 @inject ILocalStorageService _storage
 @inject HttpClient Http
 @inject NavigationManager Navigation
@@ -26,10 +27,12 @@
 	public string? chatId { get; set; }
 
 	private List<MessageModel>? messages = new List<MessageModel>();
+	private HubConnection? _hubConnection;
 
 	protected override async Task OnInitializedAsync()
 	{
 		messages = await Get($"api/Chat/chat?chatid={chatId}");
+		ConnectToHub();
 	}
 
 	public async Task<List<MessageModel>>? Get(string url)
@@ -44,6 +47,23 @@
 		return await response.Content.ReadFromJsonAsync<List<MessageModel>>();
 	}
 
+	private async Task ConnectToHub()
+	{
+		var token = await _storage.GetItemAsStringAsync("token");
+
+		_hubConnection = new HubConnectionBuilder()
+			.WithUrl($"http://localhost:7044/hubs/chat?token={token}")
+			.Build();
+
+		_hubConnection.On<MessageModel>("NewMessage", model =>
+		{
+			messages!.Add(model);
+			StateHasChanged();
+		});
+
+		await _hubConnection.StartAsync();
+	}
+
 	private async Task SendMessage()
 	{
 		var token = await _storage.GetItemAsStringAsync("token");
@@ -51,13 +71,11 @@
 		var request = new HttpRequestMessage(HttpMethod.Post, "api/chat/sendmessage");
 		request.Headers.Add("Authorization", $"Bearer {token}");
 		request.Content = JsonContent.Create(new NewMessageModel()
-			{
-				Text = messageText,
-				ChatId = Guid.Parse(chatId)
-			});
+		{
+			Text = messageText,
+			ChatId = Guid.Parse(chatId)
+		});
 		await Http.SendAsync(request);
-
-		Navigation.NavigateTo($"/getchat/{chatId}");
 	}
 }
 

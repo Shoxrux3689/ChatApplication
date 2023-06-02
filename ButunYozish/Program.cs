@@ -1,3 +1,4 @@
+using ButunYozish.Hubs;
 using ChatData.Context;
 using IdentityApi.Data;
 using IdentityApi.Data.Context;
@@ -64,8 +65,38 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };
+
+	options.Events = new JwtBearerEvents()
+	{
+		OnMessageReceived = async context =>
+		{
+			if (string.IsNullOrEmpty(context.Token))
+			{
+				//agar requestni headerida 'Authorization'
+				//nomi bilan token junatilmasa
+				//tokenni requestni querysidan
+				//olish
+
+				//barcha routelar uchun
+				var accessToken = context.Request.Query["token"];
+				context.Token = accessToken;
+
+				// faqat 'hubs' bilan boshlangan routelar uchun
+				/*var accessToken = context.Request.Query["access_token"];
+				var path = context.HttpContext.Request.Path;
+				if (!string.IsNullOrEmpty(accessToken) &&
+					path.StartsWithSegments("/hubs"))
+				{
+					context.Token = accessToken;
+				}*/
+			}
+		}
+	};
 });
 builder.Services.AddScoped<JwtService>();
+
+//signalr ishlashi uchun qoshish kerak
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -92,6 +123,8 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.MapControllers();
 
