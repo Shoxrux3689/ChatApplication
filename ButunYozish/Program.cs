@@ -93,10 +93,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 		}
 	};
 });
+
 builder.Services.AddScoped<JwtService>();
 
 //signalr ishlashi uchun qoshish kerak
 builder.Services.AddSignalR();
+//httpcontext ga controllerdan tashqarida boglanish uchun 
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
@@ -122,9 +125,10 @@ if (app.Services.GetService<IdentityDbContext>() != null)
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+
 app.UseAuthorization();
 
-app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<ChatHub>("/hubs/chatuchun");
 
 app.MapControllers();
 

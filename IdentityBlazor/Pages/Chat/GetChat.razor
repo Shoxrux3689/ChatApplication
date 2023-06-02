@@ -32,10 +32,10 @@
 	protected override async Task OnInitializedAsync()
 	{
 		messages = await Get($"api/Chat/chat?chatid={chatId}");
-		ConnectToHub();
+	 	await ConnectToHub();
 	}
 
-	public async Task<List<MessageModel>>? Get(string url)
+	private async Task<List<MessageModel>>? Get(string url)
 	{
 		var token = await _storage.GetItemAsStringAsync("token");
 
@@ -52,7 +52,7 @@
 		var token = await _storage.GetItemAsStringAsync("token");
 
 		_hubConnection = new HubConnectionBuilder()
-			.WithUrl($"http://localhost:7044/hubs/chat?token={token}")
+			.WithUrl($"https://localhost:7044/hubs/chatuchun?token={token}")
 			.Build();
 
 		_hubConnection.On<MessageModel>("NewMessage", model =>

@@ -87,13 +87,16 @@ public class ChatController : ControllerBase
             await chatHubContext.Clients.Client(connectionId).SendAsync("NewMessage", messageModel);
         } 
 
-        var connectionId2 = UserConnectionIdService.ConnectionIds.FirstOrDefault(c => c.Item1 == userId)?.Item2;
+        var connectionId2 = UserConnectionIdService.ConnectionIds.FirstOrDefault(c => c.Item1 != userId)?.Item2;
         if (connectionId2 != null)
         {
             await chatHubContext.Clients.Client(connectionId).SendAsync("NewMessage", messageModel);
-        } 
+        }
 
-        return Ok();
+        //await chatHubContext.Clients.All.SendAsync("NewMessage", messageModel);
+
+
+		return Ok();
     }
 
     [HttpGet("chats")]
