@@ -1,6 +1,5 @@
 using ButunYozish.Hubs;
 using ChatData.Context;
-using IdentityApi.Data;
 using IdentityApi.Data.Context;
 using IdentityApi.Data.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,54 +16,54 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
-    {
-        Description = "JWT Bearer. : \"Authorization: Bearer { token }\"",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey
-    });
+	c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
+	{
+		Description = "JWT Bearer. : \"Authorization: Bearer { token }\"",
+		Name = "Authorization",
+		In = ParameterLocation.Header,
+		Type = SecuritySchemeType.ApiKey
+	});
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[]{}
-        }
-    });
+	c.AddSecurityRequirement(new OpenApiSecurityRequirement
+	{
+		{
+			new OpenApiSecurityScheme
+			{
+				Reference = new OpenApiReference
+				{
+					Type = ReferenceType.SecurityScheme,
+					Id = "Bearer"
+				}
+			},
+			new string[]{}
+		}
+	});
 });
 
 builder.Services.AddDbContext<IdentityDbContext>(options =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("IdentityDb"));
+	options.UseSqlServer(builder.Configuration.GetConnectionString("IdentityDb"));
 });
 builder.Services.AddDbContext<ChatDbContext>(options =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("IdentityDb"));
+	options.UseSqlServer(builder.Configuration.GetConnectionString("IdentityDb"));
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
-    var signingKey = System.Text.Encoding.UTF32.GetBytes(builder.Configuration.GetSection("JwtOptions:SignIngKey").Value);
+	var signingKey = System.Text.Encoding.UTF32.GetBytes(builder.Configuration.GetSection("JwtOptions:SignIngKey").Value);
 
-    options.TokenValidationParameters = new TokenValidationParameters()
-    {
-        ValidIssuer = builder.Configuration.GetSection("JwtOptions:ValidIssuer").Value,
-        ValidAudience = builder.Configuration.GetSection("JwtOptions:ValidAudience").Value,
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        IssuerSigningKey = new SymmetricSecurityKey(signingKey),
-        ValidateIssuerSigningKey = true,
-        ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
-    };
+	options.TokenValidationParameters = new TokenValidationParameters()
+	{
+		ValidIssuer = builder.Configuration.GetSection("JwtOptions:ValidIssuer").Value,
+		ValidAudience = builder.Configuration.GetSection("JwtOptions:ValidAudience").Value,
+		ValidateIssuer = true,
+		ValidateAudience = true,
+		IssuerSigningKey = new SymmetricSecurityKey(signingKey),
+		ValidateIssuerSigningKey = true,
+		ValidateLifetime = true,
+		ClockSkew = TimeSpan.Zero
+	};
 
 	options.Events = new JwtBearerEvents()
 	{

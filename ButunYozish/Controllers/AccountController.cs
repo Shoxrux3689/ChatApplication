@@ -14,68 +14,68 @@ namespace ButunYozish.Controllers;
 [ApiController]
 public class AccountController : ControllerBase
 {
-    private readonly IdentityDbContext _context;
-    private readonly JwtService _jwtService;
+	private readonly IdentityDbContext _context;
+	private readonly JwtService _jwtService;
 
-    public AccountController(IdentityDbContext context, JwtService jwtService)
-    {
-        _context = context;
-        _jwtService = jwtService;
-    }
+	public AccountController(IdentityDbContext context, JwtService jwtService)
+	{
+		_context = context;
+		_jwtService = jwtService;
+	}
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody]CreateUser createUser)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest("Notori nimadir boldi");
-        }
+	[HttpPost("register")]
+	public async Task<IActionResult> Register([FromBody] CreateUser createUser)
+	{
+		if (!ModelState.IsValid)
+		{
+			return BadRequest("Notori nimadir boldi");
+		}
 
-        var user = new User()
-        {
-            Username = createUser.Username,
-        };
+		var user = new User()
+		{
+			Username = createUser.Username,
+		};
 
-        user.PasswordHash = new PasswordHasher<User>().HashPassword(user, createUser.Password);
+		user.PasswordHash = new PasswordHasher<User>().HashPassword(user, createUser.Password);
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+		_context.Users.Add(user);
+		await _context.SaveChangesAsync();
 
-        return Ok();
-    }
+		return Ok();
+	}
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody]LoginUserModel loginUserModel)
-    {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == loginUserModel.Username);
-        if (user == null)
-        {
-            return BadRequest("User null");
-        }
+	[HttpPost("login")]
+	public async Task<IActionResult> Login([FromBody] LoginUserModel loginUserModel)
+	{
+		var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == loginUserModel.Username);
+		if (user == null)
+		{
+			return BadRequest("User null");
+		}
 
-        var result = new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, loginUserModel.Password);
+		var result = new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, loginUserModel.Password);
 
-        if (result != PasswordVerificationResult.Success)
-        {
-            return BadRequest("parol notori");
-        }
+		if (result != PasswordVerificationResult.Success)
+		{
+			return BadRequest("parol notori");
+		}
 
-        var token = _jwtService.GenerateToken(user);
+		var token = _jwtService.GenerateToken(user);
 
-        return Ok(new { Token = token });
-    }
+		return Ok(new { Token = token });
+	}
 
-    [HttpGet("profile")]
-    [Authorize]
-    public IActionResult Profile()
-    {
-        var user = _context.Users.FirstOrDefault(u => u.Id == Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!));
-        var userModel = new UserModel()
-        {
-            Id = user!.Id,
-            Username = user.Username,
-        };
+	[HttpGet("profile")]
+	[Authorize]
+	public IActionResult Profile()
+	{
+		var user = _context.Users.FirstOrDefault(u => u.Id == Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!));
+		var userModel = new UserModel()
+		{
+			Id = user!.Id,
+			Username = user.Username,
+		};
 
-        return Ok(userModel);
-    }
+		return Ok(userModel);
+	}
 }

@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace IdentityBlazor.Models;
+﻿namespace IdentityBlazor.Models;
 
 public class CreateUserModel
 {
