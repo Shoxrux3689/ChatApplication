@@ -28,104 +28,124 @@ public class ChatController : ControllerBase
 		chatHubContext = chat;
 	}
 
+	
 	[HttpPost("sendmessage")]
-	public async Task<IActionResult> SendAndSaveMessage(NewMessageModel newMessage)
+	public async Task SendAndSaveMessage(NewMessageModel newMessage)
 	{
 		if (newMessage.Text == null || (newMessage.ToUserId == null && newMessage.ChatId == null))
 		{
-			return BadRequest("yetib kemayapti");
+			throw new Exception("yetib kemayapti");
 		}
+		var chat = await chatDb.Chats.Include(c => c.UserIds).FirstOrDefaultAsync(c => c.Id == newMessage.ChatId);
 
-		var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+		var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-		var chat = await chatDb.Chats.FirstOrDefaultAsync(c => c.Id == newMessage.ChatId);
-
-		if (chat == null)
+		if (chat == null && newMessage.ToUserId != null)
 		{
-			var fromUser = identityDb.Users.FirstOrDefault(u =>
-				u.Id == userId);
-
-			var toUser = identityDb.Users.FirstOrDefault(u => u.Id == newMessage.ToUserId);
-
 			chat = new Chat()
 			{
-				Users = new List<User>()
-				{
-					 fromUser!,
-					 toUser!,
-				}
+				IsPersonal = true,
 			};
 
 			chatDb.Chats.Add(chat);
 			await chatDb.SaveChangesAsync();
 
-			chat = await chatDb.Chats
-				.FirstOrDefaultAsync(c => c.Users.Count == 2 &&
-				c.Users.Any(u => u.Id == fromUser!.Id) &&
-				c.Users.Any(u => u.Id == toUser!.Id));
+			var userIds = new UserIds()
+			{
+				UserId = userId,
+				ChatId = chat.Id,
+				IsAdmin = false,
+			};
+			var userIds2 = new UserIds()
+			{
+				UserId = newMessage.ToUserId.Value,
+				ChatId = chat.Id,
+				IsAdmin = false,
+			};
+
+			var message = new Message()
+			{
+				Text = newMessage.Text,
+				ChatId = chat.Id,
+				FromUserId = userId,
+				ToUserId = newMessage.ToUserId,
+			};
+
+			chatDb.UserIds.Add(userIds);
+			chatDb.UserIds.Add(userIds2);
+			chatDb.Messages.Add(message);
+			await chatDb.SaveChangesAsync();
+
+			var messageModel = message.Adapt<MessageModel>();
+
+			//example uchun qoldirdim. connection orniga Users metodini ishlatsa ham boladi
+			var connectionId = UserConnectionIdService.ConnectionIds.FirstOrDefault(c => c.Item1 == userId)?.Item2;
+			if (connectionId != null)
+			{
+				await chatHubContext.Clients
+					.Client(connectionId)
+					.SendAsync("NewMessage", messageModel);
+			}
+
+			var connectionId2 = UserConnectionIdService.ConnectionIds.FirstOrDefault(c => c.Item1 != userId)?.Item2;
+			if (connectionId2 != null)
+			{
+				await chatHubContext.Clients
+					.Client(connectionId2)
+					.SendAsync("NewMessage", messageModel);
+			}
 		}
-
-
-		var message = new Message()
+		else if (chat != null)
 		{
-			ChatId = chat!.Id,
-			Text = newMessage.Text,
-			FromUserId = userId,
-			Date = DateTime.UtcNow,
-		};
+			var message = new Message()
+			{
+				Text = newMessage.Text,
+				ChatId = chat.Id,
+				FromUserId = userId,
+				ToUserId = newMessage.ToUserId,
+			};
 
-		chat.Messages.Add(message);
-		chatDb.Messages.Add(message);
-		await chatDb.SaveChangesAsync();
+			chatDb.Messages.Add(message);
+			await chatDb.SaveChangesAsync();
 
-		var messageModel = message.Adapt<MessageModel>();
+			var messageModel = message.Adapt<MessageModel>();
 
-		var connectionId = UserConnectionIdService.ConnectionIds.FirstOrDefault(c => c.Item1 == userId)?.Item2;
-		if (connectionId != null)
-		{
-			await chatHubContext.Clients.Client(connectionId).SendAsync("NewMessage", messageModel);
+			await chatHubContext.Clients
+				.Users(chat.UserIds.Select(u => u.UserId.ToString()))
+				.SendAsync("NewMessage", messageModel);
+
+			//await chatHubContext.Clients.All.SendAsync("NewMessage", messageModel);
 		}
-
-		var connectionId2 = UserConnectionIdService.ConnectionIds.FirstOrDefault(c => c.Item1 != userId)?.Item2;
-		if (connectionId2 != null)
+		else
 		{
-			await chatHubContext.Clients.Client(connectionId2).SendAsync("NewMessage", messageModel);
+			throw new Exception("Bunaqa chat yogu ahmoq");
+			//shuning uchun group chat oldindan yaratilgan bolishi shart
 		}
-
-		//await chatHubContext.Clients.All.SendAsync("NewMessage", messageModel);
-
-		return Ok();
 	}
-
+	
 	[HttpGet("chats")]
-	public IActionResult GetChats()
+	public async Task<List<ChatModel>> GetChats()
 	{
 		var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-		var chats = chatDb.Chats.Where(c => c.Users.Any(u => u.Id == userId)).ToList();
+		var chats = await chatDb.Chats
+			.Include(c => c.UserIds)
+			.Where(c => c.UserIds.Any(u => u.UserId == userId))
+			.ToListAsync();
 
-		var chatModels = new List<ChatModel>();
+		var chatModels = chats.Adapt<List<ChatModel>>();
 
-		foreach (var chat in chats)
-		{
-			var chatModel = new ChatModel()
-			{
-				Id = chat.Id,
-			};
-			chatModels.Add(chatModel);
-		}
-
-		return Ok(chatModels);
+		return chatModels;
 	}
 
 	[HttpGet("chat")]
-	public IActionResult GetChat(Guid chatId)
+	public async Task<List<MessageModel>> GetChat(Guid chatId)
 	{
-		var chat = chatDb.Chats.Include(c => c.Messages).FirstOrDefault(c => c.Id == chatId);
+		var chat = await chatDb.Chats.Include(c => c.Messages).FirstOrDefaultAsync(c => c.Id == chatId);
 
 		//var chatModel = chat!.Adapt<T>();
-		var messages = chat.Messages.Adapt<List<MessageModel>>();
+		var messages = chat!.Messages!.Adapt<List<MessageModel>>();
 
-		return Ok(messages);
+		return messages;
 	}
 }

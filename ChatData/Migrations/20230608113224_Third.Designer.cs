@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChatData.Migrations
 {
     [DbContext(typeof(ChatDbContext))]
-    [Migration("20230531103502_Date")]
-    partial class Date
+    [Migration("20230608113224_Third")]
+    partial class Third
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -30,6 +30,12 @@ namespace ChatData.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsPersonal")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -55,40 +61,30 @@ namespace ChatData.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("UserId")
+                    b.Property<Guid?>("ToUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ChatId");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Messages");
                 });
 
-            modelBuilder.Entity("IdentityApi.Data.Entities.User", b =>
+            modelBuilder.Entity("ChatData.Entities.UserIds", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<Guid>("ChatId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("ChatId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("bit");
 
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.HasKey("ChatId", "UserId");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChatId");
-
-                    b.ToTable("User");
+                    b.ToTable("UserIds");
                 });
 
             modelBuilder.Entity("ChatData.Entities.Message", b =>
@@ -99,27 +95,25 @@ namespace ChatData.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IdentityApi.Data.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
                     b.Navigation("Chat");
-
-                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("IdentityApi.Data.Entities.User", b =>
+            modelBuilder.Entity("ChatData.Entities.UserIds", b =>
                 {
-                    b.HasOne("ChatData.Entities.Chat", null)
-                        .WithMany("Users")
-                        .HasForeignKey("ChatId");
+                    b.HasOne("ChatData.Entities.Chat", "Chat")
+                        .WithMany("UserIds")
+                        .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chat");
                 });
 
             modelBuilder.Entity("ChatData.Entities.Chat", b =>
                 {
                     b.Navigation("Messages");
 
-                    b.Navigation("Users");
+                    b.Navigation("UserIds");
                 });
 #pragma warning restore 612, 618
         }
