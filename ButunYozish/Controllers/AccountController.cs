@@ -78,4 +78,18 @@ public class AccountController : ControllerBase
 
 		return Ok(userModel);
 	}
+
+	[HttpGet("GetUser")]
+	[Authorize]
+	public async Task<User?> GetUser(string username)
+	{
+		var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+
+		if (user == null)
+		{
+			throw new Exception("user topilmadi");
+		}
+
+		return user;
+	}
 }
