@@ -167,7 +167,7 @@ public class ChatController : ControllerBase
 		var chat = await chatDb.Chats.Include(c => c.Messages).FirstOrDefaultAsync(c => c.Id == chatId);
 
 		//var chatModel = chat!.Adapt<T>();
-		var chatModel = chat.Adapt<ChatModel>();
+		var chatModel = chat!.Adapt<ChatModel>();
 		chatModel.Messages = chat!.Messages!.Adapt<List<MessageModel>>();
 		chatModel.CurrentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 

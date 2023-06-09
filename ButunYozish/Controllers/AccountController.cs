@@ -14,13 +14,10 @@ namespace ButunYozish.Controllers;
 [ApiController]
 public class AccountController : ControllerBase
 {
-	private readonly IdentityDbContext _context;
-	private readonly JwtService _jwtService;
-
-	public AccountController(IdentityDbContext context, JwtService jwtService)
+	private readonly UserService _userService;
+	public AccountController(UserService userService)
 	{
-		_context = context;
-		_jwtService = jwtService;
+		_userService = userService;
 	}
 
 	[HttpPost("register")]
@@ -31,15 +28,7 @@ public class AccountController : ControllerBase
 			return BadRequest("Notori nimadir boldi");
 		}
 
-		var user = new User()
-		{
-			Username = createUser.Username,
-		};
-
-		user.PasswordHash = new PasswordHasher<User>().HashPassword(user, createUser.Password);
-
-		_context.Users.Add(user);
-		await _context.SaveChangesAsync();
+		var user = await _userService.RegisterAsync(createUser);
 
 		return Ok();
 	}
@@ -47,49 +36,28 @@ public class AccountController : ControllerBase
 	[HttpPost("login")]
 	public async Task<IActionResult> Login([FromBody] LoginUserModel loginUserModel)
 	{
-		var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == loginUserModel.Username);
-		if (user == null)
-		{
-			return BadRequest("User null");
-		}
+        if (!ModelState.IsValid)
+        {
+            return BadRequest("Notori nimadir boldi");
+        }
 
-		var result = new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, loginUserModel.Password);
-
-		if (result != PasswordVerificationResult.Success)
-		{
-			return BadRequest("parol notori");
-		}
-
-		var token = _jwtService.GenerateToken(user);
-
-		return Ok(new { Token = token });
-	}
+        return Ok(new { Token = await _userService.LoginAsync(loginUserModel) });
+    }
+	
 
 	[HttpGet("profile")]
 	[Authorize]
-	public IActionResult Profile()
+	public async Task<IActionResult> Profile()
 	{
-		var user = _context.Users.FirstOrDefault(u => u.Id == Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!));
-		var userModel = new UserModel()
-		{
-			Id = user!.Id,
-			Username = user.Username,
-		};
+		var userModel = await _userService.ProfileAsync();
 
 		return Ok(userModel);
 	}
 
 	[HttpGet("GetUser")]
 	[Authorize]
-	public async Task<User?> GetUser(string username)
+	public async Task<UserModel?> GetUser(string username)
 	{
-		var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
-
-		if (user == null)
-		{
-			throw new Exception("user topilmadi");
-		}
-
-		return user;
+		return await _userService.GetUserAsync(username);
 	}
 }

@@ -18,7 +18,7 @@
                 </div>
 
                 <!-- =============================================================== -->
-                <!-- member list -->
+                <!-- member list <small class="chat-alert text-muted"><i class="fa fa-reply"></i></small> -->
                 <ul class="friend-list">
                     @{
                         if (chats != null)
@@ -32,24 +32,13 @@
                                             <strong>@chatModel.Name</strong>
                                         </div>
                                         <div class="last-message text-muted">@chatModel.Messages[chatModel.Messages.Count - 1].Text</div>
-                                        <small class="time text-muted">@chatModel.Messages[chatModel.Messages.Count - 1].Date.Minute</small>
+                                        <small class="time text-muted">@chatModel.Messages[chatModel.Messages.Count - 1].Date.ToString("t")</small>
                                         <small class="chat-alert text-muted"><i class="fa fa-check"></i></small>
                                     </a>
                                 </li>
                             }
                         }
                     }
-                    <li>
-                        <a href="#" class="clearfix">
-                            <img src="https://bootdey.com/img/Content/user_1.jpg" alt="" class="img-circle">
-                            <div class="friend-name">
-                                <strong>Kate</strong>
-                            </div>
-                            <div class="last-message text-muted">Lorem ipsum dolor sit amet.</div>
-                            <small class="time text-muted">Yesterday</small>
-                            <small class="chat-alert text-muted"><i class="fa fa-reply"></i></small>
-                        </a>
-                    </li>  
                 </ul>
             </div>
 
