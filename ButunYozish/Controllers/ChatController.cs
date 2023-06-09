@@ -32,7 +32,7 @@ public class ChatController : ControllerBase
 	[HttpPost("sendmessage")]
 	public async Task SendAndSaveMessage(NewMessageModel newMessage)
 	{
-		if (newMessage.Text == null || (newMessage.ToUserId == null && newMessage.ChatId == null))
+		if (newMessage.Text == "" || (newMessage.ToUserId == null && newMessage.ChatId == null))
 		{
 			throw new Exception("yetib kemayapti");
 		}
@@ -130,11 +130,23 @@ public class ChatController : ControllerBase
 
 		var chats = await chatDb.Chats
 			.Include(c => c.UserIds)
+			.Include(c => c.Messages)
 			.Where(c => c.UserIds.Any(u => u.UserId == userId))
 			.ToListAsync();
-
+		
 		var chatModels = chats.Adapt<List<ChatModel>>();
 
+		for (int i = 0; i < chatModels.Count; i++)
+		{
+			if (chatModels[i].IsPersonal)
+			{
+				var UserID = Guid.Parse(chats[i].UserIds.First(u => u.UserId != userId).UserId.ToString());
+				var result = await identityDb.Users.FirstOrDefaultAsync(u => u.Id == UserID)!;
+				var username = result!.Username;
+				chatModels[i].Name = username;
+			}
+		}
+        
 		return chatModels;
 	}
 
@@ -147,5 +159,18 @@ public class ChatController : ControllerBase
 		var messages = chat!.Messages!.Adapt<List<MessageModel>>();
 
 		return messages;
+	}
+
+	[HttpGet("chat2")]
+	public async Task<ChatModel> GetChat2(Guid chatId)
+	{
+		var chat = await chatDb.Chats.Include(c => c.Messages).FirstOrDefaultAsync(c => c.Id == chatId);
+
+		//var chatModel = chat!.Adapt<T>();
+		var chatModel = chat.Adapt<ChatModel>();
+		chatModel.Messages = chat!.Messages!.Adapt<List<MessageModel>>();
+		chatModel.CurrentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+		return chatModel;
 	}
 }

@@ -103,7 +103,7 @@ img {
 
 .chat li.left .chat-body {
     margin-left: 70px;
-    background-color: #fff;
+    background-color: #d1d6c2;
 }
 
 .chat li .chat-body {
@@ -130,7 +130,7 @@ img {
     top: 10px;
     left: -8px;
     display: inline-block;
-    background: #fff;
+    background: #d1d6c2;
     width: 16px;
     height: 16px;
     border-top: 1px solid #f1f5fc;
@@ -148,7 +148,7 @@ img {
     top: 10px;
     right: -8px;
     display: inline-block;
-    background: #fff;
+    background: #59f34f;
     width: 16px;
     height: 16px;
     border-top: 1px solid #f1f5fc;
@@ -167,7 +167,7 @@ img {
 
     .chat li.right .chat-body {
         margin-right: 70px;
-        background-color: #fff;
+        background-color: #59f34f;
     }
 
 .chat-box {
