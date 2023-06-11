@@ -90,6 +90,11 @@ public class ChatService
     {
         var chat = await GetChatWithMessages(chatId);
 
+        if (chat == null)
+        {
+            throw new Exception("chat not found");
+        }
+
         var chatModel = chat!.Adapt<ChatModel>();
         chatModel.Messages = chat!.Messages!.Adapt<List<MessageModel>>();
         chatModel.CurrentUserId = _userId;

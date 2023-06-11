@@ -1,4 +1,4 @@
-﻿@page "/shox/{chatId}"
+﻿@page "/mychat/{chatId}"
 @using Blazored.LocalStorage;
 @using IdentityBlazor.Models;
 @using Microsoft.AspNetCore.SignalR.Client;
@@ -26,7 +26,7 @@
                             foreach (var chatModel in chats)
                             {
                                 <li>
-                                    <a href="/shox/@chatModel.Id" class="clearfix">
+                                    <a href="/mychat/@chatModel.Id" class="clearfix">
                                         <img src="https://bootdey.com/img/Content/user_2.jpg" alt="" class="img-circle">
                                         <div class="friend-name">
                                             <strong>@chatModel.Name</strong>
@@ -48,40 +48,43 @@
                 <div class="chat-message" style="background-color:white">
                     <ul class="chat">
                         @{
-                            foreach (var message in chat.Messages)
+                            if (chat != null)
                             {
-                                if (message.FromUserId == chat.CurrentUserId)
-                                {  
-                                    <li class="right clearfix">
-                                        <span class="chat-img pull-right">
-                                            <img src="https://bootdey.com/img/Content/user_1.jpg" alt="User Avatar">
-                                        </span>
-                                        <div class="chat-body clearfix">
-                                            <div class="header">
-                                                <small class="pull-right text-muted"><i class="fa fa-clock-o"></i>@message.Date.ToString("g")</small>
-                                            </div>
-                                            <h6>
-                                                @message.Text
-                                            </h6>
-                                        </div>
-                                    </li>
-                                }
-                                else
+                                foreach (var message in chat.Messages)
                                 {
-                                    <li class="left clearfix">
-                                        <span class="chat-img pull-left">
-                                            <img src="https://bootdey.com/img/Content/user_3.jpg" alt="User Avatar">
-                                        </span>
-                                        <div class="chat-body clearfix">
-                                            <div class="header">
-                                                <strong class="primary-font">@message.FromUserId</strong>
-                                                <small class="pull-right text-muted"><i class="fa fa-clock-o"></i>@message.Date.ToString("g")</small>
+                                    if (message.FromUserId == chat.CurrentUserId)
+                                    {
+                                        <li class="right clearfix">
+                                            <span class="chat-img pull-right">
+                                                <img src="https://bootdey.com/img/Content/user_1.jpg" alt="User Avatar">
+                                            </span>
+                                            <div class="chat-body clearfix">
+                                                <div class="header">
+                                                    <small class="pull-right text-muted"><i class="fa fa-clock-o"></i>@message.Date.ToString("g")</small>
+                                                </div>
+                                                <h6>
+                                                    @message.Text
+                                                </h6>
                                             </div>
-                                            <h5>
-                                                @message.Text
-                                            </h5>
-                                        </div>
-                                    </li>
+                                        </li>
+                                    }
+                                    else
+                                    {
+                                        <li class="left clearfix">
+                                            <span class="chat-img pull-left">
+                                                <img src="https://bootdey.com/img/Content/user_3.jpg" alt="User Avatar">
+                                            </span>
+                                            <div class="chat-body clearfix">
+                                                <div class="header">
+                                                    <strong class="primary-font">@message.FromUserId</strong>
+                                                    <small class="pull-right text-muted"><i class="fa fa-clock-o"></i>@message.Date.ToString("g")</small>
+                                                </div>
+                                                <h5>
+                                                    @message.Text
+                                                </h5>
+                                            </div>
+                                        </li>
+                                    }
                                 }
                             }
                         }
