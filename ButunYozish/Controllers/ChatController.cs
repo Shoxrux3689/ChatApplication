@@ -1,15 +1,17 @@
-﻿using ButunYozish.Hubs;
-using ChatData.Context;
+﻿using ChatData.Context;
 using ChatData.Entities;
 using ChatData.Models;
+using ChatData.Services;
 using IdentityApi.Data.Context;
 using IdentityApi.Data.Entities;
+using IdentityApi.Data.Providers;
 using Mapster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+
 
 namespace ButunYozish.Controllers;
 
@@ -20,157 +22,32 @@ public class ChatController : ControllerBase
 {
 	private readonly ChatDbContext chatDb;
 	private readonly IdentityDbContext identityDb;
-	private readonly IHubContext<ChatHub> chatHubContext;
-	public ChatController(ChatDbContext chatDbContext, IdentityDbContext identityDbContext, IHubContext<ChatHub> chat)
+	private readonly UserProvider _userProvider;
+	private readonly ChatService _chatService;
+	public ChatController(ChatDbContext chatDbContext, UserProvider userProvider, IdentityDbContext identityDbContext, ChatService chatService)
 	{
 		chatDb = chatDbContext;
 		identityDb = identityDbContext;
-		chatHubContext = chat;
+		_userProvider = userProvider;
+		_chatService = chatService;
 	}
 
 	
 	[HttpPost("sendmessage")]
 	public async Task SendAndSaveMessage(NewMessageModel newMessage)
 	{
-		if (newMessage.Text == "" || (newMessage.ToUserId == null && newMessage.ChatId == null))
-		{
-			throw new Exception("yetib kemayapti");
-		}
-		var chat = await chatDb.Chats.Include(c => c.UserIds).FirstOrDefaultAsync(c => c.Id == newMessage.ChatId);
-
-		var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-		if (chat == null && newMessage.ToUserId != null)
-		{
-			chat = new Chat()
-			{
-				IsPersonal = true,
-			};
-
-			chatDb.Chats.Add(chat);
-			await chatDb.SaveChangesAsync();
-
-			var userIds = new UserIds()
-			{
-				UserId = userId,
-				ChatId = chat.Id,
-				IsAdmin = false,
-			};
-			var userIds2 = new UserIds()
-			{
-				UserId = newMessage.ToUserId.Value,
-				ChatId = chat.Id,
-				IsAdmin = false,
-			};
-
-			var message = new Message()
-			{
-				Text = newMessage.Text,
-				ChatId = chat.Id,
-				FromUserId = userId,
-				ToUserId = newMessage.ToUserId,
-			};
-
-			chatDb.UserIds.Add(userIds);
-			chatDb.UserIds.Add(userIds2);
-			chatDb.Messages.Add(message);
-			await chatDb.SaveChangesAsync();
-
-			var messageModel = message.Adapt<MessageModel>();
-
-			//example uchun qoldirdim. connection orniga Users metodini ishlatsa ham boladi
-			var connectionId = UserConnectionIdService.ConnectionIds.FirstOrDefault(c => c.Item1 == userId)?.Item2;
-			if (connectionId != null)
-			{
-				await chatHubContext.Clients
-					.Client(connectionId)
-					.SendAsync("NewMessage", messageModel);
-			}
-
-			var connectionId2 = UserConnectionIdService.ConnectionIds.FirstOrDefault(c => c.Item1 != userId)?.Item2;
-			if (connectionId2 != null)
-			{
-				await chatHubContext.Clients
-					.Client(connectionId2)
-					.SendAsync("NewMessage", messageModel);
-			}
-		}
-		else if (chat != null)
-		{
-			var message = new Message()
-			{
-				Text = newMessage.Text,
-				ChatId = chat.Id,
-				FromUserId = userId,
-				ToUserId = newMessage.ToUserId,
-			};
-
-			chatDb.Messages.Add(message);
-			await chatDb.SaveChangesAsync();
-
-			var messageModel = message.Adapt<MessageModel>();
-
-			await chatHubContext.Clients
-				.Users(chat.UserIds.Select(u => u.UserId.ToString()))
-				.SendAsync("NewMessage", messageModel);
-
-			//await chatHubContext.Clients.All.SendAsync("NewMessage", messageModel);
-		}
-		else
-		{
-			throw new Exception("Bunaqa chat yogu ahmoq");
-			//shuning uchun group chat oldindan yaratilgan bolishi shart
-		}
+		await _chatService.SaveAndSendMessage(newMessage);
 	}
 	
 	[HttpGet("chats")]
 	public async Task<List<ChatModel>> GetChats()
-	{
-		var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-		var chats = await chatDb.Chats
-			.Include(c => c.UserIds)
-			.Include(c => c.Messages)
-			.Where(c => c.UserIds.Any(u => u.UserId == userId))
-			.ToListAsync();
-		
-		var chatModels = chats.Adapt<List<ChatModel>>();
-
-		for (int i = 0; i < chatModels.Count; i++)
-		{
-			if (chatModels[i].IsPersonal)
-			{
-				var UserID = Guid.Parse(chats[i].UserIds.First(u => u.UserId != userId).UserId.ToString());
-				var result = await identityDb.Users.FirstOrDefaultAsync(u => u.Id == UserID)!;
-				var username = result!.Username;
-				chatModels[i].Name = username;
-			}
-		}
-        
-		return chatModels;
+	{   
+		return await _chatService.GetChatsForUser();
 	}
 
 	[HttpGet("chat")]
-	public async Task<List<MessageModel>> GetChat(Guid chatId)
+	public async Task<ChatModel> GetChat(Guid chatId)
 	{
-		var chat = await chatDb.Chats.Include(c => c.Messages).FirstOrDefaultAsync(c => c.Id == chatId);
-
-		//var chatModel = chat!.Adapt<T>();
-		var messages = chat!.Messages!.Adapt<List<MessageModel>>();
-
-		return messages;
-	}
-
-	[HttpGet("chat2")]
-	public async Task<ChatModel> GetChat2(Guid chatId)
-	{
-		var chat = await chatDb.Chats.Include(c => c.Messages).FirstOrDefaultAsync(c => c.Id == chatId);
-
-		//var chatModel = chat!.Adapt<T>();
-		var chatModel = chat!.Adapt<ChatModel>();
-		chatModel.Messages = chat!.Messages!.Adapt<List<MessageModel>>();
-		chatModel.CurrentUserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-		return chatModel;
+		return await _chatService.GetChatForUser(chatId);
 	}
 }

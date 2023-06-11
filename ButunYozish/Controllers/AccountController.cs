@@ -54,7 +54,7 @@ public class AccountController : ControllerBase
 		return Ok(userModel);
 	}
 
-	[HttpGet("GetUser")]
+	[HttpGet("getuser")]
 	[Authorize]
 	public async Task<UserModel?> GetUser(string username)
 	{

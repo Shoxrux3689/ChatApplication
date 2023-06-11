@@ -116,7 +116,7 @@
     protected override async Task OnInitializedAsync()
     {
         chats = await Get2($"api/Chat/chats");
-        chat = await Get($"api/Chat/chat2?chatid={chatId}");
+        chat = await Get($"api/Chat/chat?chatid={chatId}");
         
         await ConnectToHub();
     }

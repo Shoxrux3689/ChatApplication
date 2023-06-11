@@ -1,4 +1,4 @@
-using ButunYozish.Hubs;
+using ChatData.Hubs;
 using ChatData.Context;
 using IdentityApi.Data.Context;
 using IdentityApi.Data.Services;
@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using ChatData.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,7 +57,7 @@ builder.Services.AddSignalR();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddIdentity(builder.Configuration);
-
+builder.Services.AddScoped<ChatService>();
 var app = builder.Build();
 
 
