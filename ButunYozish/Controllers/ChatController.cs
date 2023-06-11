@@ -46,7 +46,7 @@ public class ChatController : ControllerBase
 	}
 
 	[HttpGet("chat")]
-	public async Task<ChatModel> GetChat(Guid chatId)
+	public async Task<ChatModel?> GetChat(Guid chatId)
 	{
 		return await _chatService.GetChatForUser(chatId);
 	}

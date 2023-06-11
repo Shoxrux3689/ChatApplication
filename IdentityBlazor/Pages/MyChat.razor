@@ -1,10 +1,12 @@
 ﻿@page "/mychat/{chatId}"
 @using Blazored.LocalStorage;
 @using IdentityBlazor.Models;
+@using IdentityBlazor.Services;
 @using Microsoft.AspNetCore.SignalR.Client;
 @inject HttpClient Http
 @inject ILocalStorageService _storage
 @inject NavigationManager Navigation
+@inject RequestService _requestService
 
 <html>
     <body>
@@ -118,34 +120,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        chats = await Get2($"api/Chat/chats");
-        chat = await Get($"api/Chat/chat?chatid={chatId}");
+        chats = await _requestService.Get<List<ChatModel>>($"api/Chat/chats");
+        chat = await _requestService.Get<ChatModel>($"api/Chat/chat?chatid={chatId}");
         
         await ConnectToHub();
-    }
-
-    private async Task<ChatModel?> Get(string url)
-    {
-        var token = await _storage.GetItemAsStringAsync("token");
-
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Add("Authorization", $"Bearer {token}");
-
-        var response = await Http.SendAsync(request);
-
-        return await response.Content.ReadFromJsonAsync<ChatModel>();
-    }
-
-    private async Task<List<ChatModel>?> Get2(string url)
-    {
-        var token = await _storage.GetItemAsStringAsync("token");
-
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Add("Authorization", $"Bearer {token}");
-
-        var response = await Http.SendAsync(request);
-
-        return await response.Content.ReadFromJsonAsync<List<ChatModel>>();
     }
 
     private async Task ConnectToHub()

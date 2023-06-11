@@ -86,13 +86,13 @@ public class ChatService
         }
     }
 
-    public async Task<ChatModel> GetChatForUser(Guid chatId)
+    public async Task<ChatModel>? GetChatForUser(Guid chatId)
     {
         var chat = await GetChatWithMessages(chatId);
 
         if (chat == null)
         {
-            throw new Exception("chat not found");
+            return null;
         }
 
         var chatModel = chat!.Adapt<ChatModel>();
